@@ -52,4 +52,7 @@ Changing tabs on the pipboy app results in messages like:
  --
 
  also note,  app shows 'view mode' at top of screen, like when game is paused.  need to gather more data on how to change that.
+
+ The last byte in the heartbeat seems to not matter,  have seen \x01 as well,  and changing it on the server has no effect. 
+
  
