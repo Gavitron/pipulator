@@ -11,15 +11,15 @@ sock.connect(server_address)
 
 try:
     # Send data
-    message = '\n'
-    print >>sys.stderr, 'sending "%s"' % message
+    message = '\x00\x00\x00\x00\x00'
+    print >>sys.stderr, 'sending "%r"' % message
     sock.sendall(message)
 
  # Receive the data in small chunks and retransmit it
     while True:
         data = sock.recv(1024)
         if data:
-            print >>sys.stderr, 'received "%s"' % data
+            print >>sys.stderr, 'received "%r"' % data
         else:
             recv += data
 

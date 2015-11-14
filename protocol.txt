@@ -32,7 +32,24 @@ app connects:
 PC immediately sends a gestalt of pipboy state:
 	<repl.txt>
 
-app presumably verifies version & lang, then replies:
+app presumably verifies version & lang, then replies with a 5-null string:
 
-	{ "type":14, "args":[], "id":1 }
+	'\x00\x00\x00\x00\x00'
 
+server MUST respond with same 5 nulls or app will disconnect after 5 failed sends.
+
+--
+
+app & server now trade '\x00\x00\x00\x00\x00' back & forth to keep the connection open.
+
+--
+
+Changing tabs on the pipboy app results in messages like:
+ '{"type":14,"args":[],"id":6}'
+
+ where "id" appears to represent the page being viewed.
+
+ --
+
+ also note,  app shows 'view mode' at top of screen, like when game is paused.  need to gather more data on how to change that.
+ 

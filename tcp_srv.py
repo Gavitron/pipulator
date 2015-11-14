@@ -23,17 +23,17 @@ while True:
     try:
         print >>sys.stderr, 'connection from', client_address
 
-        # Receive the data in small chunks and retransmit it
-        rcpt = ''
+        # once we crack the data format, this would be a 'hydrate data' moment
         has_sent_gestalt = False
 
+        # Receive the data in small chunks and display it
         while True:
-            data = connection.recv(16)
-            print >>sys.stderr, 'received "%s"' % data
-            rcpt+=data
+            data = connection.recv(1024)
+            print >>sys.stderr, 'received "%r"' % data
             if data:
                 if has_sent_gestalt:
-                    connection.sendall('\n') 
+                    print >>sys.stderr, 'sending nullstr'
+                    connection.sendall('\x00\x00\x00\x00\x00') 
                 else:
                     has_sent_gestalt = True
                     print >>sys.stderr, 'sending gestalt'
