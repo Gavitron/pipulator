@@ -10,7 +10,7 @@ multicast_group = '224.3.29.71'
 server_address = ('', 28000)
 
 msg_ping = '{"cmd":"autodiscover"}'
-msg_ack  = '{ "IsBusy" : false, "MachineType" : "PC" }'
+msg_ack  = '{ "IsBusy" : false, "MachineType" : "PipUlator" }'  # MachineType should be "PC" but this appears to make no difference to the app.
 
 # Create the socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
