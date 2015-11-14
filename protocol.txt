@@ -1,0 +1,38 @@
+notes.txt
+
+The fallout executable listens on:
+	TCP port 27000
+	UDP port 28000
+
+----
+
+android app broadcasts:
+
+	UDP 28000
+	{"cmd":"autodiscover"}
+
+PC app gets broadcast,
+replies directly with:
+
+	UDP 28000
+	{
+		"IsBusy" : false,
+		"MachineType" : "PC"
+	}
+
+android app displays list of responses
+user selects a listed device
+
+---
+
+app connects:
+
+	TCP 27000 : <deviceIP>
+
+PC immediately sends a gestalt of pipboy state:
+	<repl.txt>
+
+app presumably verifies version & lang, then replies:
+
+	{ "type":14, "args":[], "id":1 }
+
