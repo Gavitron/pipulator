@@ -11,18 +11,9 @@ import sys
 
 server_address = ('', 27000)
 remote_address = ('192.168.42.101', 27000)
-message = '\x00\x00\x00\x00\x00'
-replies = {
-    'nullstr' : '\x00\x00\x00\x00\x00',
-    'onestr' : '\x00\x0f\x00\x00\x00\x00',
-    'fivstr' : '\x05\x9dr\x01\x00\x10\xef\x82A',
-    'sixstr' : '\x06\x00\x00\x00\x03',
-    'ninstr' : '\x09\x00\x00\x00\x03',
-    'twvstr' : '\x12\x00\x00\x00\x03',
-}
-with open('repl.txt', 'r') as content_file:
-    content = content_file.read()
 
+with open('gestalt.bin', 'r') as content_file:
+    content = content_file.read()
 
 # Create a TCP/IP socket for the listener port
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -48,17 +39,27 @@ while True:
 
         # Basically just pump the data each way, and tell us what moves through
         while True:
-            app_msg = remote_sock.recv(102400)
+            app_msg = remote_sock.recv(5)
             if app_msg:
-                print >>sys.stderr, 'SERVER: %r' % app_msg
+            	app_len = struct.unpack('>Q', app_msg[:4])
+            	if app_len >0
+            		app_payload = remote_sock.recv(app_len)
+            		app_msg+=app_payload
+                print >>sys.stderr, 'SERVER sent %d bytes, code: %r' % (app_len, app_msg[4])
                 client_sock.sendall(app_msg)
+                # do something here with app_payload
             else:
                 print >>sys.stderr, 'hangup from server'
                 break
-            serv_msg = client_sock.recv(102400)
+            serv_msg = client_sock.recv(5)
             if serv_msg:
-                print >>sys.stderr, 'CLIENT: %r' % serv_msg
+            	serv_len = struct.unpack('>Q', serv_msg[:4])
+            	if serv_len >0
+            		serv_payload = remote_sock.recv(serv_len)
+            		serv_msg+=serv_payload
+                print >>sys.stderr, 'CLIENT sent %d bytes, code: %r' % (serv_len, serv_msg[4])
                 remote_sock.sendall(serv_msg)
+                # do something here with serv_payload
             else:
                 print >>sys.stderr, 'hangup from client ', client_address
                 break

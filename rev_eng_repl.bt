@@ -27,6 +27,7 @@ struct FILE {
     MESSAGE two;
 
     MESSAGE three;
+    MESSAGE four;
 
 } file;
 
