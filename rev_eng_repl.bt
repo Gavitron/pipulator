@@ -1,0 +1,34 @@
+//--------------------------------------
+//--- 010 Editor v6.0.3 Binary Template
+//
+// File:
+// Author:
+// Revision:
+// Purpose:
+//--------------------------------------
+
+typedef struct {
+        uint   length <bgcolor=cLtBlue>;
+        ubyte  command <bgcolor=cLtGray>;
+} MESSAGE_HDR;
+
+typedef struct {
+    MESSAGE_HDR header;
+    char payload[header.length] <bgcolor=cLtYellow>;
+} MESSAGE;
+
+
+// ---
+
+struct FILE {
+
+    MESSAGE one;
+
+    MESSAGE two;
+
+    MESSAGE three;
+
+} file;
+
+
+
