@@ -21,13 +21,12 @@ def dif(then):
 def stale(last_seen):
 	return ( dif(last_seen) > min_delta )
 
-
 # set some default globals
 multicast_group = '224.3.29.71'
 listen_address = ('', 28000)
+ttl = struct.pack('b', 127)  # Set the time-to-live for UDP messages.  should be 1.
 
-msg_ping = '{"cmd":"autodiscover"}'
-msg_ack  = '{ "IsBusy" : false, "MachineType" : "PC" }'  # MachineType should be "PC" but this appears to make no difference to the app.
+# here we go
 
 # Create the socket
 hand_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -35,9 +34,7 @@ hand_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Bind to the server address
 hand_sock.bind(listen_address)
 
-# Set the time-to-live for messages to 1 so they do not go past the
-# local network segment.
-ttl = struct.pack('b', 127)
+
 hand_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
 
 # Tell the operating system to add the socket to the multicast group
