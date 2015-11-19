@@ -5,38 +5,75 @@
 import socket
 import struct
 import sys
+import time
+import json
 
+# debouncer magic number
+min_delta=100
+
+#return current millis
+def now():
+	return time.time()*1000000
+#return millis since 'then'
+def dif(then):
+	return now() - then
+#return true if millis since last_seen is older than minimum debounce interval
+def stale(last_seen):
+	return ( dif(last_seen) > min_delta )
+
+
+# set some default globals
 multicast_group = '224.3.29.71'
-server_address = ('', 28000)
+listen_address = ('', 28000)
 
 msg_ping = '{"cmd":"autodiscover"}'
 msg_ack  = '{ "IsBusy" : false, "MachineType" : "PC" }'  # MachineType should be "PC" but this appears to make no difference to the app.
 
 # Create the socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+hand_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Bind to the server address
-sock.bind(server_address)
+hand_sock.bind(listen_address)
 
 # Set the time-to-live for messages to 1 so they do not go past the
 # local network segment.
 ttl = struct.pack('b', 127)
-sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
+hand_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
 
 # Tell the operating system to add the socket to the multicast group
 # on all interfaces.
 group = socket.inet_aton(multicast_group)
 mreq = struct.pack('4sL', group, socket.INADDR_ANY)
-sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+hand_sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 # Receive/respond loop
-while True:
-    print >>sys.stderr, '\nwaiting to receive message'
-    data, address = sock.recvfrom(1024)
+isRunning=True
+last_seen = {}
+print >>sys.stderr, '\nHANDSHAKE READY...'
 
-    print >>sys.stderr, 'received %s bytes from %s' % (len(data), address)
-    print >>sys.stderr, data
+while isRunning:
+	raw_data, address = hand_sock.recvfrom(1024)
+	nodeID = ':'.join(map(str,address))
+	print >>sys.stderr, 'HANDSHAKE recieved %d bytes, from: %s' % (len(raw_data), nodeID)
+	if not last_seen.get(nodeID):
+		print >>sys.stderr, 'HANDSHAKE   new tuple: %s' % nodeID
+		last_seen[nodeID] = 0
+	if stale(last_seen[nodeID]):
+		print >>sys.stderr, 'HANDSHAKE   old timestamp: %d  diff:  %d  stale: %s' % (last_seen[nodeID],dif(last_seen[nodeID]),stale(last_seen[nodeID]))
+		udp_msg = json.loads(raw_data)
+		if udp_msg['cmd'] == 'autodiscover':
+			print >>sys.stderr, 'HANDSHAKE     acknowledging discovery request from %s' % nodeID
+			reply = {}
+			reply['IsBusy'] = False
+			reply['MachineType'] = "PC"
+			hand_sock.sendto(json.dumps(reply), address)
+		else:
+			print >>sys.stderr, 'HANDSHAKE   unrecognized request from %s\nHANDSHAKE content: %s' % (nodeID, udp_msg)
+		last_seen[nodeID] = now()
+	else:
+		print >>sys.stderr, 'HANDSHAKE ignoring udp spam from %s' % nodeID
 
-    print >>sys.stderr, 'sending acknowledgement to', address
-    sock.sendto(msg_ack, address)
-    #sock.sendto('ack', address)
+
+
+
+
