@@ -33,8 +33,6 @@ hand_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Bind to the server address
 hand_sock.bind(listen_address)
-
-
 hand_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
 
 # Tell the operating system to add the socket to the multicast group
