@@ -1,0 +1,46 @@
+//--------------------------------------
+//--- 010 Editor v6.0.3 Binary Template
+//
+// File:
+// Author:
+// Revision:
+// Purpose:
+//--------------------------------------
+
+struct FILE {
+        ubyte type <bgcolor=cLtRed>;
+        uint32 id <bgcolor=cLtGray>;
+        float fVal1 <bgcolor=cLtBlue>;
+
+        ubyte type <bgcolor=cLtRed>;
+        uint32 id <bgcolor=cLtGray>;
+        byte bVal1 <bgcolor=cLtBlue>;
+
+        ubyte type <bgcolor=cLtRed>;
+        uint32 id <bgcolor=cLtGray>;
+        byte bVal2 <bgcolor=cLtBlue>;
+
+        ubyte type <bgcolor=cLtRed>;
+        uint32 id <bgcolor=cLtGray>;
+        string sVal1 <bgcolor=cLtBlue>;
+
+        ubyte type <bgcolor=cLtRed>;
+        uint32 id <bgcolor=cLtGray>;
+        uint16 mapCount1  <bgcolor=cLtBlue>;
+        
+        uint32 id <bgcolor=cLtGray>;
+        string smap1 <bgcolor=cLtBlue>;
+        uint32 id <bgcolor=cLtGray>;
+        string smap2 <bgcolor=cLtBlue>;
+        uint32 id <bgcolor=cLtGray>;
+        string smap3 <bgcolor=cLtBlue>;
+        uint32 id <bgcolor=cLtGray>;
+        string smap4 <bgcolor=cLtBlue>;
+
+        uint16 appendixCt1  <bgcolor=cLtYellow>;
+
+        ubyte type <bgcolor=cLtRed>;
+        uint32 id <bgcolor=cLtGray>;
+        byte bVal1 <bgcolor=cLtBlue>;
+
+} file;
