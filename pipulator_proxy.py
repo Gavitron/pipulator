@@ -24,7 +24,7 @@ min_delta=100  # magic number for udp debouncer
 
 isRunning = Value('b', True)   # shared state to tear down threads
 
-gestalt_file = 'captures/gestalt.bin'   # just the binary bootstrap payload isolated elsewhere
+gestalt_file = 'captures/gestalt2.bin'   # just the binary bootstrap payload isolated elsewhere
 
 ######
 # misc helper function declarations
@@ -47,8 +47,8 @@ def grok(filename):
 
 ######
 # build a byte string for tx on the wire
-def msg_builder(code=0,payload=''):
-    return struct.pack('<LB', len(payload),code)+payload
+def msg_builder(msg_type=0,contents=''):
+    return struct.pack('<LB', len(contents),msg_type)+contents
 
 # tcp mesage pump to proxy two sockets
 def tcp_pump(sockin,sockout):
@@ -60,11 +60,12 @@ def tcp_pump(sockin,sockout):
             payload = sockin.recv(msg_len[0])
             message+=payload
         sockout.sendall(message)
-        if code!=0:
+        if msg_len[1]!=0:
             print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len[0], msg_len[1])
     else:
         print >>sys.stderr, 'MESSAGE   :  error from socket'
         payload = False
+        return None,None
     return msg_len[1],payload
 
 ######
@@ -153,7 +154,7 @@ if __name__ == '__main__':
                     elif code == 3:
                         print >>sys.stderr, 'PROXY %c  :  gestalt seen, %d bytes' % (flow,len(payload))
                     else:
-                        if payload==False:
+                        if payload in (False,None):
                             isRunning = False
                         elif payload!='':
                             print >>sys.stderr, 'PROXY %c  : unknown code %d with %d bytes, ' % (flow,code,len(payload))
