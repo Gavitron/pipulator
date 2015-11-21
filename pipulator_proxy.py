@@ -22,7 +22,8 @@ multicast_group = '224.3.29.71'  # something for Multicast UDP
 ttl = struct.pack('b', 8)  # 1 won't leave the local network segment
 min_delta=100  # magic number for udp debouncer
 
-isRunning = Value('b', True)   # shared state to tear down threads
+isUDPRunning = Value('b', True)   # shared state to tear down threads
+
 
 gestalt_file = 'captures/gestalt2.bin'   # just the binary bootstrap payload isolated elsewhere
 
@@ -114,20 +115,16 @@ def listener(isThreadRunning):
 # Main block starts here
 if __name__ == '__main__':
     # kick off the udp listener process
-    handshake = Process(target=listener, args=(isRunning,))
+    handshake = Process(target=listener, args=(isUDPRunning,))
     handshake.start()
 
-    # Create a TCP/IP socket for the listener port, and
-    # another so we can connect to the remote end later.
-    game_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Start the server Listening for incoming connections
+    # Create a TCP/IP socket for the listener port and Start the server Listening for incoming connections
     print >>sys.stderr, 'PROXY    : starting up on %s port %s' % tcp_address
+    proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     proxy_socket.bind(tcp_address)
     proxy_socket.listen(1)
 
-    while isRunning:
+    while True:
         # Wait for a connection
         print >>sys.stderr, 'PROXY    :   waiting for a connection'
         client_socket, client_address = proxy_socket.accept()
@@ -136,9 +133,11 @@ if __name__ == '__main__':
         try:
             print >>sys.stderr, 'PROXY    :  connection from', client_address
             print >>sys.stderr, 'PROXY    :  connecting to %s port %s...' % game_address
+            game_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             game_socket.connect(game_address)
 
             # Basically just pump the data each way.  Later we should do something with the non-empty return payloads.
+            isRunning = True
             while isRunning:
                 toggle=False
                 for sock_pair in [(game_socket,client_socket),(client_socket,game_socket)]:
@@ -161,10 +160,10 @@ if __name__ == '__main__':
         finally:
             # close out the connections
             print >>sys.stderr, 'PROXY    : closing sockets'
-            isRunning = False
             client_socket.close()
             game_socket.close()
 
+    isUDPRunning = False
     print >>sys.stderr, 'PROXY    : reaping children'
     proxy_socket.close()
     handshake.join()
