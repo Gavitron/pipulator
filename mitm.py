@@ -51,12 +51,12 @@ def tcp_pump(sockin,sockout):
     payload = ''
     message = sockin.recv(5)
     if message:
-        msg_len = struct.unpack('>Q', message[:4])
-        if msg_len > 0:
-            payload = sockin.recv(msg_len)
+        msg_len = struct.unpack('>L', message[:4])
+        if msg_len[0] > 0:
+            payload = sockin.recv(msg_len[0])
             message+=payload
         sockout.sendall(message)
-        print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len, message[4])
+        print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len[0], message[4])
     else:
         print >>sys.stderr, 'MESSAGE   :  error from socket'
         payload = False
