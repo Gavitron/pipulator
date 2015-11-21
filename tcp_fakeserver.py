@@ -2,7 +2,6 @@
 import socket
 import struct
 import sys
-import time
 import json
 
 # internet variables
@@ -12,19 +11,8 @@ min_delta=100  # magic number for reconnection attempts
 isRunning = True
 gestalt_file = 'captures/gestalt2.bin'   # just the binary bootstrap payload isolated elsewhere
 
-
 ######
 # misc helper function declarations
-
-#return current millis
-def now():
-    return time.time()*1000000
-#return millis since 'then'
-def dif(then):
-    return now() - then
-#return true if millis since last_seen is older than minimum debounce interval
-def stale(last_seen):
-    return ( dif(last_seen) > min_delta )
 
 # one-shot file ingestion
 def grok(filename):
