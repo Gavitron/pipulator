@@ -57,4 +57,15 @@ Changing tabs on the pipboy app results in messages like:
 
  also note,  app shows 'view mode' at top of screen, like when game is paused.  need to gather more data on how to change that.
 
- The last byte in the heartbeat seems to not matter,  have seen \x01 as well,  and changing it on the server has no effect. 
+ ---
+
+Wire Protocol appears to be:
+
+: Length (uint) : Command Type (byte) : Payload (LengthByte) :
+
+Known Command Types:
+  0  )  heartbeat
+  1  )  json version string
+  3  )  serialized gestalt object
+  5  )  action events from the app
+
