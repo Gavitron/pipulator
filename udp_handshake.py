@@ -66,7 +66,7 @@ while isRunning:
 			print >>sys.stderr, 'HANDSHAKE   unrecognized request from %s\nHANDSHAKE content: %s' % (nodeID, udp_msg)
 		last_seen[nodeID] = now()
 	else:
-		print >>sys.stderr, 'HANDSHAKE ignoring udp spam from %s' % nodeID
+		print >>sys.stderr, 'HANDSHAKE  ignoring duplicate request from %s' % nodeID
 
 
 

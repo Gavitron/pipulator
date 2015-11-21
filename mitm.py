@@ -13,21 +13,21 @@ import json
 from multiprocessing import Process, Value
 
 # internet variables
-listen_address = ('', 28000)
-server_address = ('', 27000)
-remote_address = ('192.168.42.101', 27000)
-multicast_group = '224.3.29.71'
-ttl = struct.pack('b', 8)  # 1 won't leave the network segment
+#game_address = ('192.168.42.101', 27000)  # the IP/port pair of the PC where FO4 is running.
+game_address = ('127.0.0.1', 27001)  # a hack so that I can use the tcpserver when testing.
+tcp_address = ('', 27000)   # the local TCP port on which to listen
+udp_address = ('', 28000)   # the local UDP port on which to listen
 
-# shared state to tear down udp
-isRunning = Value('b', True)
+multicast_group = '224.3.29.71'  # something for Multicast UDP
+ttl = struct.pack('b', 8)  # 1 won't leave the local network segment
+min_delta=100  # magic number for udp debouncer
 
-# debouncer magic number
-min_delta=100
+isRunning = Value('b', True)   # shared state to tear down threads
 
-# just the binary bootstrap payload isolated elsewhere
-gestalt_file = 'gestalt.bin'
+gestalt_file = 'gestalt.bin'   # just the binary bootstrap payload isolated elsewhere
 
+######
+# misc helper function declarations
 
 #return current millis
 def now():
@@ -41,16 +41,34 @@ def stale(last_seen):
 
 # one-shot file ingestion
 def grok(filename):
-	with open(filename, 'r') as content_file:
-    	return content_file.read()
+    with open(filename, 'r') as content_file:
+        whole = content_file.read()
+    return whole
 
+######
+# tcp mesage pump to proxy two sockets
+def tcp_pump(sockin,sockout):
+    payload = ''
+    message = sockin.recv(5)
+    if message:
+        msg_len = struct.unpack('>Q', message[:4])
+        if msg_len > 0:
+            payload = sockin.recv(msg_len)
+            message+=payload
+        sockout.sendall(message)
+        print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len, message[4])
+    else:
+        print >>sys.stderr, 'MESSAGE   :  error from socket'
+        payload = False
+    return payload
 
+######
 # define the udp listener thread
-def listener(name):
+def listener(isThreadRunning):
     # Create the socket
     hand_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # Bind to the server address
-    hand_sock.bind(listen_address)
+    hand_sock.bind(udp_address)
     hand_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     # Tell the operating system to add the socket to the multicast group
     # on all interfaces.
@@ -60,7 +78,7 @@ def listener(name):
     print >>sys.stderr, '\nHANDSHAKE: READY...'
     # Receive/respond loop
     last_seen = {}
-    while isRunning:
+    while isThreadRunning:
         raw_data, address = hand_sock.recvfrom(1024)
         nodeID = ':'.join(map(str,address))
         print >>sys.stderr, 'HANDSHAKE: recieved %d bytes, from: %s' % (len(raw_data), nodeID)
@@ -80,74 +98,54 @@ def listener(name):
                 print >>sys.stderr, 'HANDSHAKE:   unrecognized request from %s\nHANDSHAKE: content: %s' % (nodeID, udp_msg)
             last_seen[nodeID] = now()
         else:
-            print >>sys.stderr, 'HANDSHAKE: ignoring udp spam from %s' % nodeID
+            print >>sys.stderr, 'HANDSHAKE: ignoring duplicate request from %s' % nodeID
 
-	# close out the socket, we're done here.
-	handshake_sock.close()
-	isRunning=False
+    # close out the socket, we're done here.
+    handshake_sock.close()
+    isThreadRunning=False
 
+######
 # Main block starts here
 if __name__ == '__main__':
-	# kick off the udp listener process
-    handshake = Process(target=listener, args=(isRunning))
+    # kick off the udp listener process
+    handshake = Process(target=listener, args=(isRunning,))
     handshake.start()
 
-	# Create a TCP/IP socket for the listener port
-	server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Create a TCP/IP socket for the listener port, and
+    # another so we can connect to the remote end later.
+    game_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-	# Create another TCP/IP socket so we can connect to the remote end later.
-	remote_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Start the server Listening for incoming connections
+    print >>sys.stderr, 'SERVER   : starting up on %s port %s' % tcp_address
+    proxy_socket.bind(tcp_address)
+    proxy_socket.listen(1)
 
-	# Start the server Listening for incoming connections
-	print >>sys.stderr, 'SERVER   : starting up on %s port %s' % server_address
-	server_sock.bind(server_address)
-	server_sock.listen(1)
+    while isRunning:
+        # Wait for a connection
+        print >>sys.stderr, 'SERVER   :   waiting for a connection'
+        client_socket, client_address = proxy_socket.accept()
 
-	while isRunning:
-	    # Wait for a connection
-	    print >>sys.stderr, 'SERVER   :   waiting for a connection'
-	    client_sock, client_address = server_sock.accept()
+        # the client connected, so make a connection to the server now
+        try:
+            print >>sys.stderr, 'SERVER   :  connection from', client_address
+            print >>sys.stderr, 'CLIENT   :  connecting to %s port %s...' % game_address
+            game_socket.connect(game_address)
 
-	    # the client connected, so make a connection to the server now
-	    try:
-	        print >>sys.stderr, 'SERVER   :  connection from', client_address
-	        print >>sys.stderr, 'CLIENT   :  connecting to %s port %s' % remote_address
-	        remote_sock.connect(remote_address)
+            # Basically just pump the data each way.  Later we should do something with the non-empty return payloads.
+            while isRunning:
+                if tcp_pump(game_socket,client_socket)==False:
+                    isRunning = False
+                if tcp_pump(client_socket,game_socket)==False:
+                    isRunning = False
+        finally:
+            # close out the connections
+            print >>sys.stderr, 'SRV/CLI  : closing sockets'
+            isRunning = False
+            client_socket.close()
+            game_socket.close()
 
-	        # Basically just pump the data each way, and tell us what moves through
-	        while isRunning:
-	            app_msg = remote_sock.recv(5)
-	            if app_msg:
-	            	app_len = struct.unpack('>Q', app_msg[:4])
-	            	if app_len > 0
-	            		app_payload = remote_sock.recv(app_len)
-	            		app_msg+=app_payload
-	                print >>sys.stderr, 'SERVER   :   sent %d bytes, code: %r' % (app_len, app_msg[4])
-	                client_sock.sendall(app_msg)
-	                # do something here with app_payload
-	            else:
-	                print >>sys.stderr, 'SERVER   :  hangup from server'
-	                isRunning = False
-	            serv_msg = client_sock.recv(5)
-	            if serv_msg:
-	            	serv_len = struct.unpack('>Q', serv_msg[:4])
-	            	if serv_len > 0
-	            		serv_payload = remote_sock.recv(serv_len)
-	            		serv_msg+=serv_payload
-	                print >>sys.stderr, 'CLIENT   :   sent %d bytes, code: %r' % (serv_len, serv_msg[4])
-	                remote_sock.sendall(serv_msg)
-	                # do something here with serv_payload
-	            else:
-	                print >>sys.stderr, 'CLIENT   :  hangup from client ', client_address
-	                isRunning = False
-
-	    finally:
-	        # close out the connections
-	        print >>sys.stderr, 'SRV/CLI  : closing sockets'
-	        isRunning = False
-	        connection.close()
-	        remote_sock.close()
-
-	print >>sys.stderr, 'SRV/CLI  : reaping children'
+    print >>sys.stderr, 'SRV/CLI  : reaping children'
+    proxy_socket.close()
     handshake.join()
-	print >>sys.stderr, 'SRV/CLI  : done'
+    print >>sys.stderr, 'SRV/CLI  : done'
