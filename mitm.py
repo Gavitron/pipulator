@@ -24,7 +24,7 @@ min_delta=100  # magic number for udp debouncer
 
 isRunning = Value('b', True)   # shared state to tear down threads
 
-gestalt_file = 'gestalt.bin'   # just the binary bootstrap payload isolated elsewhere
+gestalt_file = 'captures/gestalt.bin'   # just the binary bootstrap payload isolated elsewhere
 
 ######
 # misc helper function declarations
@@ -46,21 +46,25 @@ def grok(filename):
     return whole
 
 ######
+# build a byte string for tx on the wire
+def msg_builder(code=0,payload=''):
+    return struct.pack('<LB', len(payload),code)+payload
+
 # tcp mesage pump to proxy two sockets
 def tcp_pump(sockin,sockout):
     payload = ''
     message = sockin.recv(5)
     if message:
-        msg_len = struct.unpack('>L', message[:4])
+        msg_len = struct.unpack('<LB', message)
         if msg_len[0] > 0:
             payload = sockin.recv(msg_len[0])
             message+=payload
         sockout.sendall(message)
-        print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len[0], message[4])
+        print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len[0], msg_len[1])
     else:
         print >>sys.stderr, 'MESSAGE   :  error from socket'
         payload = False
-    return payload
+    return msg_len[1],payload
 
 ######
 # define the udp listener thread
@@ -117,35 +121,50 @@ if __name__ == '__main__':
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Start the server Listening for incoming connections
-    print >>sys.stderr, 'SERVER   : starting up on %s port %s' % tcp_address
+    print >>sys.stderr, 'PROXY    : starting up on %s port %s' % tcp_address
     proxy_socket.bind(tcp_address)
     proxy_socket.listen(1)
 
     while isRunning:
         # Wait for a connection
-        print >>sys.stderr, 'SERVER   :   waiting for a connection'
+        print >>sys.stderr, 'PROXY    :   waiting for a connection'
         client_socket, client_address = proxy_socket.accept()
 
         # the client connected, so make a connection to the server now
         try:
-            print >>sys.stderr, 'SERVER   :  connection from', client_address
-            print >>sys.stderr, 'CLIENT   :  connecting to %s port %s...' % game_address
+            print >>sys.stderr, 'PROXY    :  connection from', client_address
+            print >>sys.stderr, 'PROXY    :  connecting to %s port %s...' % game_address
             game_socket.connect(game_address)
 
             # Basically just pump the data each way.  Later we should do something with the non-empty return payloads.
             while isRunning:
-                if tcp_pump(game_socket,client_socket)==False:
-                    isRunning = False
-                if tcp_pump(client_socket,game_socket)==False:
-                    isRunning = False
+                directions = [(game_socket,client_socket),(client_socket,game_socket)]
+                toggle=False
+                for (in, out) in directions:
+                    toggle=not toggle
+                    if toggle:
+                        flow='>'
+                    else:
+                        flow='<'
+                    (code,payload)=tcp_pump(in,out)
+                    if code == 1:
+                        data=json.loads(payload)
+                        print >>sys.stderr, 'PROXY %c  :  app version: %s  lang: %s  ' % (flow,data['version'],data['lang'])
+                    elif code == 3:
+                        print >>sys.stderr, 'PROXY %c  :  gestalt seen, %d bytes' % (flow,len(payload))
+                    else:
+                        if payload==False:
+                            isRunning = False
+                        elif payload!='':
+                            print >>sys.stderr, 'PROXY %c  : unknown code %d with %d bytes, ' % (flow,code,len(payload))
         finally:
             # close out the connections
-            print >>sys.stderr, 'SRV/CLI  : closing sockets'
+            print >>sys.stderr, 'PROXY    : closing sockets'
             isRunning = False
             client_socket.close()
             game_socket.close()
 
-    print >>sys.stderr, 'SRV/CLI  : reaping children'
+    print >>sys.stderr, 'PROXY    : reaping children'
     proxy_socket.close()
     handshake.join()
-    print >>sys.stderr, 'SRV/CLI  : done'
+    print >>sys.stderr, 'PROXY    : done'
