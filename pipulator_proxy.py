@@ -60,7 +60,8 @@ def tcp_pump(sockin,sockout):
             payload = sockin.recv(msg_len[0])
             message+=payload
         sockout.sendall(message)
-        print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len[0], msg_len[1])
+        if code!=0:
+            print >>sys.stderr, 'MESSAGE  :   proxied %d bytes, code %r' % (msg_len[0], msg_len[1])
     else:
         print >>sys.stderr, 'MESSAGE   :  error from socket'
         payload = False
@@ -138,15 +139,14 @@ if __name__ == '__main__':
 
             # Basically just pump the data each way.  Later we should do something with the non-empty return payloads.
             while isRunning:
-                directions = [(game_socket,client_socket),(client_socket,game_socket)]
                 toggle=False
-                for (in, out) in directions:
+                for sock_pair in [(game_socket,client_socket),(client_socket,game_socket)]:
                     toggle=not toggle
                     if toggle:
                         flow='>'
                     else:
                         flow='<'
-                    (code,payload)=tcp_pump(in,out)
+                    (code,payload)=tcp_pump(sock_pair[0],sock_pair[1])
                     if code == 1:
                         data=json.loads(payload)
                         print >>sys.stderr, 'PROXY %c  :  app version: %s  lang: %s  ' % (flow,data['version'],data['lang'])
