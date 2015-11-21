@@ -6,7 +6,7 @@ import json
 
 # internet variables
 tcp_address = ('', 27000)  # listen on all interfaces on the default port
-#tcp_address = ('127.0.0.1', 27001)  # a hack so that I can use the tcpserver when testing.
+#tcp_address = ('127.0.0.1', 27001)  # a hack so that I can use the tcpserver when testing the mitm proxy.
 isRunning = True
 gestalt_file = 'captures/gestalt2.bin'   # just the binary bootstrap payload isolated elsewhere
 
@@ -22,7 +22,7 @@ def grok(filename):
 ######
 # build a byte string for tx on the wire
 def msg_builder(code=0,payload=''):
-    return struct.pack('<LB', len(payload),code)+payload # not a magic number.  There are 4 bytes for the length then 1 byte for 'code', and sys.sizeof() is perverse.
+    return struct.pack('<LB', len(payload),code)+payload
 
 ######
 # Main block starts here
