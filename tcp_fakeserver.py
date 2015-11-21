@@ -7,7 +7,6 @@ import json
 # internet variables
 tcp_address = ('', 27000)  # listen on all interfaces on the default port
 #tcp_address = ('127.0.0.1', 27001)  # a hack so that I can use the tcpserver when testing.
-min_delta=100  # magic number for reconnection attempts
 isRunning = True
 gestalt_file = 'captures/gestalt2.bin'   # just the binary bootstrap payload isolated elsewhere
 
