@@ -10,6 +10,10 @@ tcp_address = ('', 27000)  # listen on all interfaces on the default port
 isRunning = True
 gestalt_file = 'captures/gestalt2.bin'   # just the binary bootstrap payload isolated elsewhere
 
+app_info = {
+    'lang' : 'en',
+    'version' : '1.1.30.0'
+}
 ######
 # misc helper function declarations
 
@@ -42,24 +46,22 @@ while isRunning:
     # the client connected, so make a connection to the server now
     try:
         print >>sys.stderr, 'SERVER   :  connection from', client_address
-        # Basically just pump the data each way.  Later we should do something with the non-empty return payloads.
-        reply = {}
-        reply['lang'] = "en"
-        reply['version'] = "1.1.30.0"
-        client_socket.sendall(msg_builder(1,json.dumps(reply)+'\n'))
+        # Basically just blat out the raw data without question, just like the real server.
+        client_socket.sendall(msg_builder(1,json.dumps(app_info)+'\n'))
         client_socket.sendall(msg_builder(3,grok(gestalt_file)))
+        # now we idle in the heartbeat loop forever:
         while isRunning:
             payload = ''
             message = client_socket.recv(5)
             if message:
-                msg_len = struct.unpack('<L', message[:4])
+                msg_len = struct.unpack('<LB', message)
                 if msg_len[0] > 0:
                     payload = client_socket.recv(msg_len[0])
-                    print >>sys.stderr, 'MESSAGE  :   recv %d bytes, code %r, payload == %s' % (msg_len[0], message[4],payload)
-                # we should do stuff here with the inbound messaging.
+                    print >>sys.stderr, 'MESSAGE  :   recv %d bytes, code %r, payload == %s' % (msg_len[0], msg_len[1],payload)
+                # we could do stuff here with the inbound messaging.
 
                 # now we compose a reply.
-                client_socket.sendall(msg_builder())    # the usual heartbeat messages
+                client_socket.sendall(msg_builder())    # defaults get us the usual heartbeat response
             else:
                 print >>sys.stderr, 'MESSAGE   :  error from socket'
                 isRunning = False
