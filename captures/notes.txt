@@ -1,24 +1,24 @@
 notes.txt
 
 The fallout executable listens on:
-	TCP port 27000
-	UDP port 28000
+  TCP port 27000
+  UDP port 28000
 
 ----
 
 android app broadcasts:
 
-	UDP 28000
-	{"cmd":"autodiscover"}
+  UDP 28000
+  {"cmd":"autodiscover"}
 
 PC app gets broadcast,
 replies directly with:
 
-	UDP 28000
-	{
-		"IsBusy" : false,
-		"MachineType" : "PC"
-	}
+  UDP 28000
+  {
+    "IsBusy" : false,
+    "MachineType" : "PC"
+  }
 
 android app displays list of responses
 user selects a listed device
@@ -27,18 +27,18 @@ user selects a listed device
 
 app connects:
 
-	TCP 27000 : <deviceIP>
+  TCP 27000 : <deviceIP>
 
 PC immediately sends a gestalt of pipboy state:
-	connecting to 192.168.42.101 port 27000
-	sending "'\x00\x00\x00\x00\x00'"
-	received "'#\x00\x00\x00\x01'"
-	received "'{"lang":"en","version":"1.1.30.0"}\n'"
-	received "'\x90\x95\x05\x00\x03'"
+  connecting to 192.168.42.101 port 27000
+  sending "'\x00\x00\x00\x00\x00'"
+  received "'#\x00\x00\x00\x01'"
+  received "'{"lang":"en","version":"1.1.30.0"}\n'"
+  received "'\x90\x95\x05\x00\x03'"
 
 app presumably verifies version & lang, then replies with a 5-null heartbeat:
 
-	'\x00\x00\x00\x00\x00'
+  '\x00\x00\x00\x00\x00'
 
 server MUST respond with same 5 nulls or app will disconnect after 5 failed sends.
 
@@ -66,6 +66,9 @@ Wire Protocol appears to be:
 Known Command Types:
   0  )  heartbeat
   1  )  json version string
-  3  )  serialized gestalt object
-  5  )  action events from the app
+  3  )  serialized game info - this can be any length, and is simply a binary stream of changed data, encoded as below.
+  5  )  json-encoded events from the app
+
+
+
 

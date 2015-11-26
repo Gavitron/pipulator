@@ -13,7 +13,6 @@ import json
 from multiprocessing import Process, Value
 
 # internet variables
-#game_address = ('192.168.42.101', 27000)  # the IP/port pair of the PC where FO4 is running.
 game_address = ('127.0.0.1', 27001)  # a hack so that I can use the tcpserver when testing.
 tcp_address = ('', 27000)   # the local TCP port on which to listen
 udp_address = ('', 28000)   # the local UDP port on which to listen
@@ -51,7 +50,7 @@ def grok(filename):
 def msg_builder(msg_type=0,contents=''):
     return struct.pack('<LB', len(contents),msg_type)+contents
 
-# tcp mesage pump to proxy two sockets
+# tcp mesage pump to proxy between two sockets
 def tcp_pump(sockin,sockout):
     payload = ''
     message = sockin.recv(5)
@@ -157,6 +156,8 @@ if __name__ == '__main__':
                             isRunning = False
                         elif payload!='':
                             print >>sys.stderr, 'PROXY %c  : unknown code %d with %d bytes, ' % (flow,code,len(payload))
+                        else
+                            print >>sys.stderr, 'PROXY %c  : heartbeat' % flow
         finally:
             # close out the connections
             print >>sys.stderr, 'PROXY    : closing sockets'
