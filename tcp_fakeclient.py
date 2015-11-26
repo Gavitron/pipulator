@@ -7,7 +7,6 @@ import sys
 import json
 
 # internet variables
-#game_address = ('192.168.42.101', 27000)  # the IP/port pair of the PC where FO4 is running.
 game_address = ('127.0.0.1', 27001)  # a hack so that I can use the tcpserver when testing.
 
 ######
